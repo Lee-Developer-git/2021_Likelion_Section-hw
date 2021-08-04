@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h1><상세보기 페이지></h1>
+    <br>
+    <h3>글 제목 : {{ post.title }} </h3><br>
+    <h3>글 내용 : {{ post.content }} </h3><br>
+    <h3>작성 시각 : {{ post.created_at }} </h3><br>
+    <h4>조회 수: {{ post.view_count }} </h4><br>
+
+    {% if post.user %}
+        <h3> 작성자 : {{ post.user }}</h3>
+    {% else %}
+        <h3> 작성자 : 알수 없음</h3>
+    {% endif %}
+
+    {% if post.image %}
+        <img src="{{ post.image.url }}" width="500px" height="500px">
+    {% endif %}
+    <br>
+
+    {% if post.user == user %}
+        <a href="{% url 'items:delete' post.pk %}"> 삭제하기 </a>
+    {% endif %}
+
+<!-- 4. show.html 수정하기 -->
+<span href="#" class="like" name ="{{post.id}}" value="Like"> 
+
+    <!-- 만약 유저가 좋아요를 눌렀다면 채운 하트로 변경 -->
+    {% if user in post.like_user_set.all %}
+        <div class="alt-service-icon">
+            <i class="fas fa-heart" id ="like-icon" style="color:red;"></i>
+        </div> 
+    <!-- 아니면 비워진 하트 -->
+    {% else %}
+
+        <div class="alt-service-icon">
+            <i class="far fa-heart" id ="like-icon" style="color:red;"></i> 
+        </div>
+
+    {% endif %}
+
+    <span id="count-{{ post.id }}" class="alt-services-title font-alt"> 
+        좋아요 
+        {% if post.like_count == 0 %} 
+            0개 
+        {% else %}
+            {{ post.like_count }}개
+        {% endif %}
+    </span>
+</span>
+
+</div>
+<!-- 5. ajax 적용하기 -->
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script>
+    $(".like").click(function() { // 좋아요를 눌렀을 때 무슨 기능을 하는지 나타내 줌
+        var pk = $(this).attr('name');
+        $.ajax({
+            type: "POST",
+            url: "{% url 'items:like_toggle' post.pk %}",
+            data: {'pk': pk, 'csrfmiddlewaretoken':'{{csrf_token}}'},
+            dataType: "json", // 데이터 타입 작성
+            success: function(response){
+                if(response.like_count == null){
+                    alert("로그인이 필요합니다.");
+                    window.location.replace("/accounts/login/");
+                } else {
+                    if (response.result == "like"){ // 만약 좋아요가 클릭되어 있다면
+                        $('#like-icon').removeClass();
+                        $('#like-icon').addClass('fas fa-heart'); // 빈 하트로 된다
+                    } else {
+                        $('#like-icon').removeClass();
+                        $('#like-icon').addClass('far fa-heart'); // 채워진 하트로 변한다
+                    }
+                    $('#count-{{ post.id }}').html('좋아요'+response.like_count+'개'); // 좋아요 수를 출력
+                }
+            },
+            error:function(request, status, error){
+                alert("로그인이 필요합니다.");
+                alert("code:"+ request.status + "\n"+ "message:" + request.responseText + "\n" + "error:" + error);
+            }
+        })
+    })
+
+</script>
+
+{% endblock %}
+
+<!--
+AJAX의 기본 틀
+$.ajax({
+    url // 클라이언트가 요청을 보낼 서버의 URL 주소
+    data //HTTP 요청과 함께 서버로 보낼 데이터
+    type  //HTTP 요청 방식(GET, POST)
+    dataType  //서버에서 보내줄 데이터의 타입(json)
+})
+-->
